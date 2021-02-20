@@ -132,7 +132,9 @@ void PIRServer::set_database(const std::uint8_t bytes[],
 void PIRServer::update_database_plaintext(Plaintext ptxt_item,
     uint64_t ptxt_index) {
     assert(ptxt_index < db_->size());
-    evaluator_->transform_to_ntt_inplace(ptxt_item, params_.parms_id());
+    if (is_db_preprocessed_) {
+        evaluator_->transform_to_ntt_inplace(ptxt_item, params_.parms_id());
+    } 
     (*db_)[ptxt_index] = move(ptxt_item);
 }
 

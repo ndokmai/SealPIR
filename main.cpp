@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
 
     // Create test database
     auto db(make_unique<uint8_t[]>(number_of_items * size_per_item));
+    auto updated_db(make_unique<uint8_t[]>(number_of_items * size_per_item));
 
     // Copy of the database. We use this at the end to make sure we retrieved
     // the correct element.
@@ -43,6 +44,7 @@ int main(int argc, char *argv[]) {
         for (uint64_t j = 0; j < size_per_item; j++) {
             auto val = rd() % 256;
             db.get()[(i * size_per_item) + j] = val;
+            updated_db.get()[(i * size_per_item) + j] = val;
             db_copy.get()[(i * size_per_item) + j] = val;
         }
     }
@@ -63,6 +65,7 @@ int main(int argc, char *argv[]) {
     auto time_pre_s = high_resolution_clock::now();
     server.set_database(move(db), number_of_items, size_per_item);
     server.preprocess_database();
+    
     cout << "Main: database pre processed " << endl;
     auto time_pre_e = high_resolution_clock::now();
     auto time_pre_us = duration_cast<microseconds>(time_pre_e - time_pre_s).count();
@@ -73,6 +76,13 @@ int main(int argc, char *argv[]) {
     uint64_t offset = client.get_fv_offset(ele_index, size_per_item); // offset in FV plaintext
     cout << "Main: element index = " << ele_index << " from [0, " << number_of_items -1 << "]" << endl;
     cout << "Main: FV index = " << index << ", FV offset = " << offset << endl; 
+
+    for (uint64_t j = 0; j < size_per_item; j++) {
+        auto val = rd() % 256;
+        updated_db.get()[(ele_index * size_per_item) + j] = val;
+        db_copy.get()[(ele_index * size_per_item) + j] = val;
+    }
+    server.update_database(move(updated_db), number_of_items, size_per_item, ele_index);
 
     // Measure query generation
     auto time_query_s = high_resolution_clock::now();

@@ -15,7 +15,8 @@ class PIRServer {
     void set_database(std::unique_ptr<std::vector<seal::Plaintext>> &&db);
     void set_database(const std::unique_ptr<const std::uint8_t[]> &bytes, std::uint64_t ele_num, std::uint64_t ele_size);
     void preprocess_database();
-
+    void update_database_plaintext(seal::Plaintext ptxt_item, uint64_t ptxt_index);
+    void update_database(const std::unique_ptr<const std::uint8_t[]> &bytes, std::uint64_t ele_num, std::uint64_t ele_size, uint64_t ele_pos);
     std::vector<seal::Ciphertext> expand_query(
             const seal::Ciphertext &encrypted, std::uint32_t m, uint32_t client_id);
 
@@ -30,6 +31,8 @@ class PIRServer {
     bool is_db_preprocessed_;
     std::map<int, seal::GaloisKeys> galoisKeys_;
     std::unique_ptr<seal::Evaluator> evaluator_;
+    std::uint64_t ele_num_;
+    std::uint64_t ele_size_;
 
     void decompose_to_plaintexts_ptr(const seal::Ciphertext &encrypted, seal::Plaintext *plain_ptr, int logt);
     std::vector<seal::Plaintext> decompose_to_plaintexts(const seal::Ciphertext &encrypted);

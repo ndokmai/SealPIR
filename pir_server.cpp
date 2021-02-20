@@ -39,6 +39,9 @@ void PIRServer::set_database(unique_ptr<vector<Plaintext>> &&db) {
 void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes, 
     uint64_t ele_num, uint64_t ele_size) {
 
+    ele_num_ = ele_num;
+    ele_size_ = ele_size;
+
     uint32_t logt = floor(log2(params_.plain_modulus().value()));
     uint32_t N = params_.poly_modulus_degree();
 
@@ -121,6 +124,48 @@ void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes,
 
     set_database(move(result));
 }
+
+void PIRServer::update_database_plaintext(Plaintext ptxt_item,
+    uint64_t ptxt_index) {
+    assert(ptxt_index < db_->size());
+    evaluator_->transform_to_ntt_inplace(ptxt_item, params_.parms_id());
+    (*db_)[ptxt_index] = move(ptxt_item);
+}
+
+void PIRServer::update_database(const std::unique_ptr<const std::uint8_t[]> &bytes, 
+    uint64_t ele_num, uint64_t ele_size, uint64_t ele_index) {
+    assert(ele_num == ele_num_);
+    assert(ele_size == ele_size_);
+    assert(ele_index < ele_num);
+
+    uint32_t logt = floor(log2(params_.plain_modulus().value()));
+    uint32_t N = params_.poly_modulus_degree();
+    uint64_t ele_per_ptxt = elements_per_ptxt(logt, N, ele_size);
+    uint64_t bytes_per_ptxt = ele_per_ptxt * ele_size;
+    uint32_t db_size = ele_num * ele_size;
+    uint32_t offset = (ele_index - ele_index % ele_per_ptxt) * ele_size;
+    uint64_t coeff_per_ptxt = ele_per_ptxt * coefficients_per_element(logt, ele_size);
+
+    uint64_t process_bytes = 0;
+    if (db_size < offset + bytes_per_ptxt) {
+        process_bytes = db_size - offset;
+    } else {
+        process_bytes = bytes_per_ptxt;
+    }
+
+    vector<uint64_t> coefficients = bytes_to_coeffs(logt, bytes.get() + offset, process_bytes);
+    uint64_t used = coefficients.size();
+    assert(used <= coeff_per_ptxt);
+    // Pad the rest with 1s
+    for (uint64_t j = 0; j < (N - used); j++) {
+        coefficients.push_back(1);
+    }
+    Plaintext plain;
+    vector_to_plaintext(coefficients, plain);
+    uint32_t i = ele_index/ele_per_ptxt;
+    PIRServer::update_database_plaintext(move(plain), i);
+}
+
 
 void PIRServer::set_galois_key(std::uint32_t client_id, seal::GaloisKeys galkey) {
     galkey.parms_id() = params_.parms_id();

@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
 
     // Create test database
     auto db(make_unique<uint8_t[]>(number_of_items * size_per_item));
-    auto updated_db(make_unique<uint8_t[]>(number_of_items * size_per_item));
 
     // Copy of the database. We use this at the end to make sure we retrieved
     // the correct element.
@@ -44,7 +43,6 @@ int main(int argc, char *argv[]) {
         for (uint64_t j = 0; j < size_per_item; j++) {
             auto val = rd() % 256;
             db.get()[(i * size_per_item) + j] = val;
-            updated_db.get()[(i * size_per_item) + j] = val;
             db_copy.get()[(i * size_per_item) + j] = val;
         }
     }
@@ -79,10 +77,14 @@ int main(int argc, char *argv[]) {
 
     for (uint64_t j = 0; j < size_per_item; j++) {
         auto val = rd() % 256;
-        updated_db.get()[(ele_index * size_per_item) + j] = val;
         db_copy.get()[(ele_index * size_per_item) + j] = val;
     }
-    server.update_database(move(updated_db), number_of_items, size_per_item, ele_index);
+
+    auto time_update_s = high_resolution_clock::now();
+    server.update_database(db_copy.get(), number_of_items, size_per_item, ele_index);
+    cout << "Main: database updated" << endl;
+    auto time_update_e = high_resolution_clock::now();
+    auto time_update_us = duration_cast<microseconds>(time_update_e - time_update_s).count();
 
     // Measure query generation
     auto time_query_s = high_resolution_clock::now();
@@ -124,6 +126,7 @@ int main(int argc, char *argv[]) {
     // Output results
     cout << "Main: PIR result correct!" << endl;
     cout << "Main: PIRServer pre-processing time: " << time_pre_us / 1000 << " ms" << endl;
+    cout << "Main: PIRServer updating time: " << time_update_us / 1000 << " ms" << endl;
     cout << "Main: PIRClient query generation time: " << time_query_us / 1000 << " ms" << endl;
     cout << "Main: PIRServer reply generation time: " << time_server_us / 1000 << " ms"
          << endl;

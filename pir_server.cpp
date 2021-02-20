@@ -35,8 +35,12 @@ void PIRServer::set_database(unique_ptr<vector<Plaintext>> &&db) {
     db_ = move(db);
     is_db_preprocessed_ = false;
 }
-
 void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes, 
+    uint64_t ele_num, uint64_t ele_size) {
+    PIRServer::set_database(bytes.get(), ele_num, ele_size);
+}
+
+void PIRServer::set_database(const std::uint8_t bytes[], 
     uint64_t ele_num, uint64_t ele_size) {
 
     ele_num_ = ele_num;
@@ -85,7 +89,7 @@ void PIRServer::set_database(const std::unique_ptr<const std::uint8_t[]> &bytes,
         }
 
         // Get the coefficients of the elements that will be packed in plaintext i
-        vector<uint64_t> coefficients = bytes_to_coeffs(logt, bytes.get() + offset, process_bytes);
+        vector<uint64_t> coefficients = bytes_to_coeffs(logt, bytes + offset, process_bytes);
         offset += process_bytes;
 
         uint64_t used = coefficients.size();
@@ -132,18 +136,18 @@ void PIRServer::update_database_plaintext(Plaintext ptxt_item,
     (*db_)[ptxt_index] = move(ptxt_item);
 }
 
-void PIRServer::update_database(const std::unique_ptr<const std::uint8_t[]> &bytes, 
-    uint64_t ele_num, uint64_t ele_size, uint64_t ele_index) {
+void PIRServer::update_database(const std::uint8_t bytes[], 
+    uint64_t ele_num, uint64_t ele_size, uint64_t update_ele_index) {
     assert(ele_num == ele_num_);
     assert(ele_size == ele_size_);
-    assert(ele_index < ele_num);
+    assert(update_ele_index < ele_num);
 
     uint32_t logt = floor(log2(params_.plain_modulus().value()));
     uint32_t N = params_.poly_modulus_degree();
     uint64_t ele_per_ptxt = elements_per_ptxt(logt, N, ele_size);
     uint64_t bytes_per_ptxt = ele_per_ptxt * ele_size;
     uint32_t db_size = ele_num * ele_size;
-    uint32_t offset = (ele_index - ele_index % ele_per_ptxt) * ele_size;
+    uint32_t offset = (update_ele_index - update_ele_index % ele_per_ptxt) * ele_size;
     uint64_t coeff_per_ptxt = ele_per_ptxt * coefficients_per_element(logt, ele_size);
 
     uint64_t process_bytes = 0;
@@ -153,7 +157,7 @@ void PIRServer::update_database(const std::unique_ptr<const std::uint8_t[]> &byt
         process_bytes = bytes_per_ptxt;
     }
 
-    vector<uint64_t> coefficients = bytes_to_coeffs(logt, bytes.get() + offset, process_bytes);
+    vector<uint64_t> coefficients = bytes_to_coeffs(logt, bytes + offset, process_bytes);
     uint64_t used = coefficients.size();
     assert(used <= coeff_per_ptxt);
     // Pad the rest with 1s
@@ -162,10 +166,9 @@ void PIRServer::update_database(const std::unique_ptr<const std::uint8_t[]> &byt
     }
     Plaintext plain;
     vector_to_plaintext(coefficients, plain);
-    uint32_t i = ele_index/ele_per_ptxt;
+    uint32_t i = update_ele_index/ele_per_ptxt;
     PIRServer::update_database_plaintext(move(plain), i);
 }
-
 
 void PIRServer::set_galois_key(std::uint32_t client_id, seal::GaloisKeys galkey) {
     galkey.parms_id() = params_.parms_id();

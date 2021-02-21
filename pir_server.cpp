@@ -71,8 +71,10 @@ void PIRServer::set_database(const std::uint8_t bytes[],
     uint64_t coeff_per_ptxt = ele_per_ptxt * coefficients_per_element(logt, ele_size);
     assert(coeff_per_ptxt <= N);
 
+#ifdef VERBOSE
     cout << "Server: total number of FV plaintext = " << total << endl;
     cout << "Server: elements packed into each plaintext " << ele_per_ptxt << endl; 
+#endif
 
     uint32_t offset = 0;
 
@@ -198,31 +200,41 @@ PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
 
     int logt = floor(log2(params_.plain_modulus().value()));
 
+#ifdef VERBOSE
     cout << "expansion ratio = " << pir_params_.expansion_ratio << endl; 
+#endif 
     for (uint32_t i = 0; i < nvec.size(); i++) {
+#ifdef VERBOSE
         cout << "Server: " << i + 1 << "-th recursion level started " << endl; 
+#endif 
 
 
         vector<Ciphertext> expanded_query; 
 
         uint64_t n_i = nvec[i];
+#ifdef VERBOSE
         cout << "Server: n_i = " << n_i << endl; 
         cout << "Server: expanding " << query[i].size() << " query ctxts" << endl;
+#endif 
         for (uint32_t j = 0; j < query[i].size(); j++){
             uint64_t total = N; 
             if (j == query[i].size() - 1){
                 total = n_i % N; 
             }
+#ifdef VERBOSE
             cout << "-- expanding one query ctxt into " << total  << " ctxts "<< endl;
+#endif 
             vector<Ciphertext> expanded_query_part = expand_query(query[i][j], total, client_id);
             expanded_query.insert(expanded_query.end(), std::make_move_iterator(expanded_query_part.begin()), 
                     std::make_move_iterator(expanded_query_part.end()));
             expanded_query_part.clear(); 
         }
+#ifdef VERBOSE
         cout << "Server: expansion done " << endl; 
         if (expanded_query.size() != n_i) {
             cout << " size mismatch!!! " << expanded_query.size() << ", " << n_i << endl; 
         }    
+#endif 
 
         /*
         cout << "Checking expanded query " << endl; 
@@ -247,12 +259,13 @@ PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
             }
         }
 
+#ifdef VERBOSE
         for (uint64_t k = 0; k < product; k++) {
             if ((*cur)[k].is_zero()){
                 cout << k + 1 << "/ " << product <<  "-th ptxt = 0 " << endl; 
             }
         }
-
+#endif 
         product /= n_i;
 
         vector<Ciphertext> intermediateCtxts(product);
@@ -297,10 +310,14 @@ PirReply PIRServer::generate_reply(PirQuery query, uint32_t client_id) {
             }
             product *= pir_params_.expansion_ratio; // multiply by expansion rate.
         }
+#ifdef VERBOSE
         cout << "Server: " << i + 1 << "-th recursion level finished " << endl; 
         cout << endl;
+#endif
     }
+#ifdef VERBOSE
     cout << "reply generated!  " << endl;
+#endif
     // This should never get here
     assert(0);
     vector<Ciphertext> fail(1);

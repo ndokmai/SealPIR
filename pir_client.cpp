@@ -34,9 +34,11 @@ PirQuery PIRClient::generate_query(uint64_t desiredIndex) {
     Plaintext pt(params_.poly_modulus_degree());
     for (uint32_t i = 0; i < indices_.size(); i++) {
         uint32_t num_ptxts = ceil( (pir_params_.nvec[i] + 0.0) / N);
+#ifdef VERBOSE
         // initialize result. 
         cout << "Client: index " << i + 1  <<  "/ " <<  indices_.size() << " = " << indices_[i] << endl; 
         cout << "Client: number of ctxts needed for query = " << num_ptxts << endl;
+#endif 
         for (uint32_t j =0; j < num_ptxts; j++){
             pt.set_zero();
             if (indices_[i] > N*(j+1) || indices_[i] < N*j){
@@ -86,7 +88,9 @@ Plaintext PIRClient::decode_reply(PirReply reply) {
     uint64_t t = params_.plain_modulus().value();
 
     for (uint32_t i = 0; i < recursion_level; i++) {
+#ifdef VERBOSE
         cout << "Client: " << i + 1 << "/ " << recursion_level << "-th decryption layer started." << endl; 
+#endif
         vector<Ciphertext> newtemp;
         vector<Plaintext> tempplain;
 
@@ -117,8 +121,10 @@ Plaintext PIRClient::decode_reply(PirReply reply) {
                 // cout << "Client: const term of ciphertext = " << combined[0] << endl; 
             }
         }
+#ifdef VERBOSE
         cout << "Client: done." << endl; 
         cout << endl; 
+#endif
         if (i == recursion_level - 1) {
             assert(temp.size() == 1);
             return tempplain[0];
@@ -225,7 +231,9 @@ void PIRClient::compute_inverse_scales(){
         uint64_t numCtxt = ceil ( (pir_params_.nvec[i] + 0.0) / N);  // number of query ciphertexts. 
         uint64_t batchId = indices_[i] / N;  
         if (batchId == numCtxt - 1) {
+#ifdef VERBOSE
             cout << "Client: adjusting the logm value..." << endl; 
+#endif
             logm = ceil(log2((pir_params_.nvec[i] % N)));
         }
 
@@ -242,7 +250,9 @@ void PIRClient::compute_inverse_scales(){
         if ( (inverse_scale << logm)  % t != 1){
             throw logic_error("something wrong"); 
         }
+#ifdef VERBOSE
         cout << "Client: logm, inverse scale, t = " << logm << ", " << inverse_scale << ", " << t << endl; 
+#endif
     }
 }
 

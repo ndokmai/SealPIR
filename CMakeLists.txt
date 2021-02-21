@@ -6,7 +6,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(SealPIR VERSION 2.1 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-add_executable(main 
+option(VERBOSE "Trace protocol internal values" ON)
+option(DEBUG "Print debug information" OFF)
+if(VERBOSE)
+    add_definitions(-DVERBOSE)
+endif()
+if(DEBUG)
+    add_definitions(-DDEBUG)
+endif()
+
+add_executable(main
 	main.cpp
 )
 
